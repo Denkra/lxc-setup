@@ -1,4 +1,6 @@
 #!/bin/bash
+set -euo pipefail
+IFS=$'\n\t'
 
 # Backspace korrekt setzen
 stty erase ^H
@@ -41,9 +43,9 @@ funktion_ssh_aktivieren() {
 funktion_benutzer_erstellen() {
     ueberschrift "=== Neuer Benutzer wird erstellt ==="
     frage "Benutzername: "
-    read -e benutzername
+    read -r benutzername
     frage "Passwort: "
-    read -s -e passwort
+    read -s -r passwort
     echo
     useradd -m -s /bin/bash "$benutzername"
     echo "$benutzername:$passwort" | chpasswd
@@ -54,7 +56,7 @@ funktion_benutzer_erstellen() {
 funktion_programme_installieren() {
     ueberschrift "=== Programme werden installiert ==="
     frage "Bitte geben Sie die Programme ein (durch Leerzeichen getrennt): "
-    read -e programme
+    read -r programme
     if [ -n "$programme" ]; then
         apt install -y $programme
         echo "Installation abgeschlossen."
@@ -63,13 +65,13 @@ funktion_programme_installieren() {
     fi
 }
 
-# Hauptteil
+# --- Hauptteil ---
 funktion_update
 funktion_upgrade_auto
 
 # SSH-Abfrage
 frage "Möchten Sie SSH aktivieren? (j/n): "
-read -e antwort
+read -r antwort
 if [[ "$antwort" =~ ^[Jj]$ ]]; then
     funktion_ssh_aktivieren
 else
@@ -78,7 +80,7 @@ fi
 
 # Benutzer-Abfrage
 frage "Möchten Sie einen neuen Benutzer erstellen? (j/n): "
-read -e antwort
+read -r antwort
 if [[ "$antwort" =~ ^[Jj]$ ]]; then
     funktion_benutzer_erstellen
 else
@@ -87,7 +89,7 @@ fi
 
 # Zusätzliche Programme
 frage "Möchten Sie zusätzliche Programme installieren? (j/n): "
-read -e antwort
+read -r antwort
 if [[ "$antwort" =~ ^[Jj]$ ]]; then
     funktion_programme_installieren
 else
