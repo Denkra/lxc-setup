@@ -1,29 +1,31 @@
 #!/bin/bash
-set -euo pipefail
-IFS=$'\n\t'
 
-# --- Config ---
-# Hier die Werte vorgeben, statt zu fragen
-SSH_AKTIVIEREN=${SSH_AKTIVIEREN:-"j"}        # "j" oder "n"
-BENUTZERNAME=${BENUTZERNAME:-"user1"}       # gewünschter Benutzername
-PASSWORT=${PASSWORT:-"Passwort123"}         # Passwort für neuen Benutzer
-PROGRAMME=${PROGRAMME:-"vim git curl"}      # Programme, die installiert werden sollen
+# Backspace korrekt setzen
+stty erase ^H
 
-# --- Funktionen ---
+# Funktion: farbige Überschrift (grün)
 ueberschrift() {
     echo -e "\e[32m$1\e[0m"
 }
 
+# Funktion: farbige Frage (gelb)
+frage() {
+    echo -ne "\e[33m$1\e[0m"
+}
+
+# Funktion: apt update
 funktion_update() {
     ueberschrift "=== Paketlisten werden aktualisiert ==="
     apt update
 }
 
+# Funktion: apt upgrade automatisch ohne Nachfragen
 funktion_upgrade_auto() {
     ueberschrift "=== Upgrade wird automatisch ausgeführt ==="
     DEBIAN_FRONTEND=noninteractive apt upgrade -y
 }
 
+# Funktion: SSH aktivieren
 funktion_ssh_aktivieren() {
     ueberschrift "=== SSH wird aktiviert ==="
     cp /etc/ssh/sshd_config /etc/ssh/sshd_config.bak
@@ -32,41 +34,64 @@ funktion_ssh_aktivieren() {
     sed -i 's/^#StrictModes yes/StrictModes yes/' /etc/ssh/sshd_config
     systemctl enable ssh
     systemctl restart ssh
-    echo "SSH wurde aktiviert."
+    echo "SSH wurde aktiviert und Konfiguration angepasst."
 }
 
+# Funktion: Benutzer erstellen
 funktion_benutzer_erstellen() {
     ueberschrift "=== Neuer Benutzer wird erstellt ==="
-    useradd -m -s /bin/bash "$BENUTZERNAME" || true
-    echo "$BENUTZERNAME:$PASSWORT" | chpasswd
-    echo "Benutzer '$BENUTZERNAME' wurde erstellt."
+    frage "Benutzername: "
+    read -e benutzername
+    frage "Passwort: "
+    read -s -e passwort
+    echo
+    useradd -m -s /bin/bash "$benutzername"
+    echo "$benutzername:$passwort" | chpasswd
+    echo "Benutzer '$benutzername' wurde erstellt."
 }
 
+# Funktion: Programme installieren
 funktion_programme_installieren() {
     ueberschrift "=== Programme werden installiert ==="
-    if [ -n "$PROGRAMME" ]; then
-        DEBIAN_FRONTEND=noninteractive apt install -y $PROGRAMME
+    frage "Bitte geben Sie die Programme ein (durch Leerzeichen getrennt): "
+    read -e programme
+    if [ -n "$programme" ]; then
+        apt install -y $programme
         echo "Installation abgeschlossen."
     else
         echo "Keine Programme angegeben."
     fi
 }
 
-# --- Hauptteil ---
+# Hauptteil
 funktion_update
 funktion_upgrade_auto
 
-# SSH
-if [[ "$SSH_AKTIVIEREN" =~ ^[Jj]$ ]]; then
+# SSH-Abfrage
+frage "Möchten Sie SSH aktivieren? (j/n): "
+read -e antwort
+if [[ "$antwort" =~ ^[Jj]$ ]]; then
     funktion_ssh_aktivieren
 else
     echo "SSH wird nicht aktiviert."
 fi
 
-# Benutzer
-funktion_benutzer_erstellen
+# Benutzer-Abfrage
+frage "Möchten Sie einen neuen Benutzer erstellen? (j/n): "
+read -e antwort
+if [[ "$antwort" =~ ^[Jj]$ ]]; then
+    funktion_benutzer_erstellen
+else
+    echo "Kein Benutzer wird erstellt."
+fi
 
-# Programme
-funktion_programme_installieren
+# Zusätzliche Programme
+frage "Möchten Sie zusätzliche Programme installieren? (j/n): "
+read -e antwort
+if [[ "$antwort" =~ ^[Jj]$ ]]; then
+    funktion_programme_installieren
+else
+    echo "Keine zusätzlichen Programme werden installiert."
+fi
 
 ueberschrift "=== Skript beendet ==="
