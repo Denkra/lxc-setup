@@ -2,8 +2,10 @@
 set -euo pipefail
 IFS=$'\n\t'
 
-# Backspace korrekt setzen
-stty erase ^H
+# Backspace nur setzen, wenn Terminal vorhanden
+if [ -t 0 ]; then
+    stty erase ^H
+fi
 
 # Funktion: farbige Überschrift (grün)
 ueberschrift() {
